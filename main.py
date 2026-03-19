@@ -7,7 +7,7 @@ import random
 app = Flask(__name__)
 
 # ✅ Create candle builder instance
-builder = CandleBuilder()
+builder = CandleBuilder(duration=30)
 
 
 @app.route("/")
