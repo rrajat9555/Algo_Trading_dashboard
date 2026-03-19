@@ -1,61 +1,30 @@
-def run_engine(data):
+# engine.py
 
-    score = 0
-    reasons = []
+def vwap_strategy(data):
+    if data["price"] > data["vwap"]:
+        return {"signal": "CALL", "score": 1}
+    elif data["price"] < data["vwap"]:
+        return {"signal": "PUT", "score": 1}
+    return {"signal": "NEUTRAL", "score": 0}
 
-    # ----------------------
-    # 🔹 TREND ENGINE
-    # ----------------------
-    if data["ltp"] > data["vwap"]:
-        score += 2
-        reasons.append("Above VWAP")
 
-    if data["ema9"] > data["ema21"]:
-        score += 2
-        reasons.append("EMA Bullish")
+def ema_strategy(data):
+    if data["ema_9"] > data["ema_21"]:
+        return {"signal": "CALL", "score": 1}
+    elif data["ema_9"] < data["ema_21"]:
+        return {"signal": "PUT", "score": 1}
+    return {"signal": "NEUTRAL", "score": 0}
 
-    # ----------------------
-    # 🔹 VOLUME
-    # ----------------------
-    if data["volume"] > 1200:
-        score += 1
-        reasons.append("High Volume")
 
-    # ----------------------
-    # 🔹 PCR SENTIMENT
-    # ----------------------
-    if data["pcr"] > 1.1:
-        score += 1
-        reasons.append("Bullish PCR")
+def pcr_strategy(data):
+    if data["pcr"] > 1.2:
+        return {"signal": "CALL", "score": 1}
     elif data["pcr"] < 0.8:
-        score -= 1
-        reasons.append("Bearish PCR")
+        return {"signal": "PUT", "score": 1}
+    return {"signal": "NEUTRAL", "score": 0}
 
-    # ----------------------
-    # 🔹 SUPPORT / RESISTANCE FILTER
-    # ----------------------
-    if data["prev_low"] + 20 < data["ltp"] < data["prev_high"] - 20:
-        return {
-            "signal": "NO TRADE",
-            "score": score,
-            "reason": "Inside Range"
-        }
 
-    # ----------------------
-    # 🔹 FINAL SIGNAL
-    # ----------------------
-    if score >= 4:
-        signal = "BUY CALL"
-    elif score <= -3:
-        signal = "BUY PUT"
-    else:
-        signal = "NO TRADE"
-
-    confidence = int((abs(score) / 6) * 100)
-
-    return {
-        "signal": signal,
-        "score": score,
-        "confidence": confidence,
-        "reasons": reasons
-    }
+def volume_strategy(data):
+    if data["volume"] > data["avg_volume"]:
+        return {"signal": "CONFIRM", "score": 1}
+    return {"signal": "WEAK", "score": 0}
