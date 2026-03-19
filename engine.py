@@ -69,12 +69,86 @@ def trap_strategy(data):
 
 
 # =========================
+# CANDLE STRATEGIES (NEW)
+# =========================
+
+def momentum_candle(data):
+    body = abs(data["close"] - data["open"])
+    range_ = data["high"] - data["low"]
+
+    if range_ == 0:
+        return {"signal": "NEUTRAL", "score": 0}
+
+    body_percent = body / range_
+
+    if body_percent > 0.7:
+        if data["close"] > data["open"]:
+            return {"signal": "CALL", "score": 2}
+        else:
+            return {"signal": "PUT", "score": 2}
+
+    return {"signal": "NEUTRAL", "score": 0}
+
+
+def rejection_candle(data):
+    upper_wick = data["high"] - max(data["open"], data["close"])
+    lower_wick = min(data["open"], data["close"]) - data["low"]
+    body = abs(data["close"] - data["open"])
+
+    if body == 0:
+        body = 1
+
+    if lower_wick > body * 2:
+        return {"signal": "CALL", "score": 1}
+
+    if upper_wick > body * 2:
+        return {"signal": "PUT", "score": 1}
+
+    return {"signal": "NEUTRAL", "score": 0}
+
+
+def engulfing_candle(data):
+    prev_open = data["prev_open"]
+    prev_close = data["prev_close"]
+
+    if data["close"] > data["open"] and prev_close < prev_open:
+        if data["close"] > prev_open and data["open"] < prev_close:
+            return {"signal": "CALL", "score": 2}
+
+    if data["close"] < data["open"] and prev_close > prev_open:
+        if data["open"] > prev_close and data["close"] < prev_open:
+            return {"signal": "PUT", "score": 2}
+
+    return {"signal": "NEUTRAL", "score": 0}
+
+
+# =========================
+# RANGE FILTER
+# =========================
+
+def range_filter(data):
+    range_size = data["resistance"] - data["support"]
+
+    if range_size < 50:
+        return True
+    return False
+
+
+# =========================
 # MAIN ENGINE
 # =========================
 
 def run_engine(data):
 
-    # 1. Trap detection (RISK FIRST)
+    # 0. Range filter
+    if range_filter(data):
+        return {
+            "signal": "NO TRADE",
+            "reason": "SIDEWAYS MARKET",
+            "confidence": 0
+        }
+
+    # 1. Trap detection
     trap = trap_strategy(data)
     if trap != "SAFE":
         return {
@@ -83,14 +157,19 @@ def run_engine(data):
             "confidence": 0
         }
 
-    # 2. Run strategies
+    # 2. Run strategies (INCLUDING CANDLES)
     strategies = [
         vwap_strategy(data),
         ema_strategy(data),
         structure_strategy(data),
         breakout_strategy(data),
         orb_strategy(data),
-        pcr_strategy(data)
+        pcr_strategy(data),
+
+        # Candle intelligence
+        momentum_candle(data),
+        rejection_candle(data),
+        engulfing_candle(data)
     ]
 
     call_score = 0
@@ -111,8 +190,8 @@ def run_engine(data):
             "confidence": 0
         }
 
-    # 4. Final decision (UPGRADED)
-    total_possible = 12
+    # 4. Final decision
+    total_possible = 18  # updated
     MIN_CONFIDENCE = 60
 
     if call_score > put_score:
