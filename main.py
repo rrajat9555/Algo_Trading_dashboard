@@ -1,8 +1,13 @@
 from flask import Flask, jsonify
 from engine import run_engine
+from candle_builder import CandleBuilder  # ✅ NEW
 import os
+import random
 
 app = Flask(__name__)
+
+# ✅ Create candle builder instance
+builder = CandleBuilder()
 
 
 @app.route("/")
@@ -13,17 +18,29 @@ def home():
 @app.route("/signal")
 def signal():
 
-    # Dummy Data
+    # 🔥 Simulate live price movement
+    price = 22400 + random.randint(-50, 50)
+
+    # 🔥 Update candle with new price
+    builder.update(price)
+
+    current_candle, prev_candle = builder.get_candles()
+
+    # Handle first run (no previous candle)
+    if not prev_candle:
+        prev_candle = current_candle
+
+    # 🔥 Prepare data for engine
     data = {
-        "price": 22450,
-        "vwap": 22420,
-        "ema_9": 22460,
-        "ema_21": 22430,
+        "price": price,
+        "vwap": price - 20,
+        "ema_9": price + 10,
+        "ema_21": price - 10,
         "pcr": 1.1,
-        "volume": 120000,
+        "volume": random.randint(90000, 150000),
         "avg_volume": 100000,
-        "support": 22400,
-        "resistance": 22500,
+        "support": price - 80,
+        "resistance": price + 80,
 
         # Structure
         "hh": True,
@@ -32,10 +49,18 @@ def signal():
         "ll": False,
 
         # ORB
-        "orb_high": 22480,
-        "orb_low": 22380
+        "orb_high": price + 40,
+        "orb_low": price - 40,
+
+        # 🔥 Dynamic candle data
+        "candle_5m": current_candle,
+        "prev_candle_5m": prev_candle,
+
+        # 🔥 Simple trend logic (temporary)
+        "candle_15m_trend": "BULLISH" if price > (price - 20) else "BEARISH"
     }
 
+    # Run engine
     result = run_engine(data)
 
     return jsonify(result)
