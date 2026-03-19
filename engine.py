@@ -74,7 +74,7 @@ def trap_strategy(data):
 
 def run_engine(data):
 
-    # 1. Trap detection (FIRST)
+    # 1. Trap detection (RISK FIRST)
     trap = trap_strategy(data)
     if trap != "SAFE":
         return {
@@ -111,16 +111,33 @@ def run_engine(data):
             "confidence": 0
         }
 
-    # 4. Final decision
-    total_possible = 12  # max score
+    # 4. Final decision (UPGRADED)
+    total_possible = 12
+    MIN_CONFIDENCE = 60
 
     if call_score > put_score:
-        signal = "BUY CALL"
         confidence = (call_score / total_possible) * 100
 
+        if confidence < MIN_CONFIDENCE:
+            return {
+                "signal": "NO TRADE",
+                "confidence": round(confidence, 2),
+                "reason": "LOW CONFIDENCE"
+            }
+
+        signal = "BUY CALL"
+
     elif put_score > call_score:
-        signal = "BUY PUT"
         confidence = (put_score / total_possible) * 100
+
+        if confidence < MIN_CONFIDENCE:
+            return {
+                "signal": "NO TRADE",
+                "confidence": round(confidence, 2),
+                "reason": "LOW CONFIDENCE"
+            }
+
+        signal = "BUY PUT"
 
     else:
         signal = "NO TRADE"
